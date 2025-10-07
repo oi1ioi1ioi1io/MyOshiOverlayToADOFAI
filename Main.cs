@@ -50,7 +50,7 @@ namespace MyOshiOverlay
                 {
                     { "PhotoPath", "Enter photo path:" },
                     { "ApplyImage", "Apply" },
-                    { "ResolutionSettings", "Overlay Max Resolution Settings" },
+                    { "ResolutionSettings", "Overlay Max Size Settings" },
                     { "MaxWidth", "Max Width:" },
                     { "MaxHeight", "Max Height:" },
                     { "ApplyResolution", "Apply" },
@@ -61,7 +61,7 @@ namespace MyOshiOverlay
                 {
                     { "PhotoPath", "사진 경로 입력:" },
                     { "ApplyImage", "적용" },
-                    { "ResolutionSettings", "오버레이 최대 해상도 설정" },
+                    { "ResolutionSettings", "오버레이 최대 크기 설정" },
                     { "MaxWidth", "최대 너비:" },
                     { "MaxHeight", "최대 높이:" },
                     { "ApplyResolution", "적용" },
@@ -146,17 +146,21 @@ namespace MyOshiOverlay
                     Event.current.Use();
                 }
 
+                // 파일 경로 입력
                 GUILayout.Label(languageTexts[currentLanguage]["PhotoPath"]);
 
                 GUI.SetNextControlName("FilePathInput");
                 overlay.filePath = GUILayout.TextField(overlay.filePath ?? "", GUILayout.Width(300));
 
+                // 적용 버튼
                 if (GUILayout.Button(languageTexts[currentLanguage]["ApplyImage"], GUILayout.Width(100)))
                 {
-                    overlay.LoadImage();
+                    overlay.LoadImage();    // Overlay.cs 쪽에서 이미지 로드
                 }
 
                 GUILayout.Space(20);
+
+                // 오버레이 최대 해상도 설정
                 GUILayout.Label(languageTexts[currentLanguage]["ResolutionSettings"]);
 
                 GUILayout.BeginHorizontal();
@@ -171,6 +175,7 @@ namespace MyOshiOverlay
                 tempMaxHeight = GUILayout.TextField(tempMaxHeight, GUILayout.Width(100));
                 GUILayout.EndHorizontal();
 
+                // 적용 버튼
                 if (GUILayout.Button(languageTexts[currentLanguage]["ApplyResolution"], GUILayout.Width(200)))
                 {
                     ApplyResolutionSettings(modEntry);
@@ -178,10 +183,12 @@ namespace MyOshiOverlay
             }
         }
 
+        // 사진 크기 적용 및 저장 함수
         private static void ApplyResolutionSettings(UnityModManager.ModEntry modEntry)
         {
             bool applied = false;
 
+            // 숫자 입력만 받고 입력 잘못하면 이전 값 유지
             if (int.TryParse(tempMaxWidth, out int w))
             {
                 settings.maxWidth = Mathf.Clamp(w, 100, Screen.width);
@@ -206,8 +213,10 @@ namespace MyOshiOverlay
                 tempMaxHeight = lastValidMaxHeight;
             }
 
+            // 설정 저장
             settings.Save(modEntry);
 
+            // 오버레이 크기 갱신
             if (overlay != null && applied)
             {
                 overlay.maxWidth = settings.maxWidth;
