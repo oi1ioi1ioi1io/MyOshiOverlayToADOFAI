@@ -1,0 +1,8 @@
+{
+  "Id": "MyOshiOverlay",
+  "DisplayName": "MyOshiOverlay",
+  "Author": "tairud",
+  "Version": "1.0.0",
+  "AssemblyName": "MyOshiOverlay.dll",
+  "EntryMethod": "MyOshiOverlay.Main.Load"
+}
