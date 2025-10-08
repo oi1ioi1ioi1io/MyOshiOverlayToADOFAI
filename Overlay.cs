@@ -1,39 +1,123 @@
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using System.IO;
+using System.Drawing;
+using System.Drawing.Imaging;
 
 namespace MyOshiOverlay
 {
     public class Overlay : MonoBehaviour
     {
-        public string filePath; // 불러올 이미지 경로
-        public Texture2D texture; // 불러온 이미지(Texture2D)
-        public Rect rect = new Rect(100, 100, 200, 200); // 오버레이 위치와 크기
+        public string filePath;
+        public Texture2D texture;
+        public Rect rect = new Rect(100, 100, 200, 200);
 
-        // 최대 크기 제한 Main.cs랑 똑같음
         public int maxWidth = 500;
         public int maxHeight = 500;
 
-        public bool isDragging = false; // 드래그 중인지 아닌지 여부
-        public bool isTyping = false; // 텍스트 입력 중 여부 (UI 입력 감지 방지용)
+        public bool isDragging = false;
+        public bool isTyping = false;
 
-        private Vector2 dragOffset; // 드래그할 때 클릭 위치와 이미지 위치 간의 거리
+        private Vector2 dragOffset;
+
+        // --- GIF 관련 변수 ---
+        private bool isGif = false;
+        private List<Texture2D> gifFrames = new List<Texture2D>();
+        private List<float> gifDelays = new List<float>();
+        private int currentFrame = 0;
+        private float timer = 0f;
 
         public void LoadImage()
         {
-            // 경로 유효성 검사
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning("[MyOshiOverlay] File not found: " + filePath);
                 return;
             }
 
-            // 이미지 데이터를 바이트로 읽고 Texture2D로 변환
-            byte[] data = File.ReadAllBytes(filePath);
-            texture = new Texture2D(2, 2);
-            texture.LoadImage(data); // PNG, JPG 등 일반 이미지 로드
+            string ext = Path.GetExtension(filePath).ToLower();
 
-            UpdateImageSize(); // 불러온 뒤 해상도 조정
+            if (ext == ".gif")
+            {
+                isGif = true;
+                LoadGif(filePath);
+                UpdateImageSize();
+            }
+            else
+            {
+                isGif = false;
+                LoadStaticImage(filePath);
+            }
+        }
+
+        private void LoadStaticImage(string path)
+        {
+            byte[] data = File.ReadAllBytes(path);
+            texture = new Texture2D(2, 2);
+            texture.LoadImage(data);
+            UpdateImageSize();
+        }
+
+        private void LoadGif(string path)
+        {
+            gifFrames.Clear();
+            gifDelays.Clear();
+
+            using (Image gif = Image.FromFile(path))
+            {
+                FrameDimension dimension = new FrameDimension(gif.FrameDimensionsList[0]);
+                int frameCount = gif.GetFrameCount(dimension);
+
+                // 프레임별로 분리
+                for (int i = 0; i < frameCount; i++)
+                {
+                    gif.SelectActiveFrame(dimension, i);
+
+                    using (MemoryStream ms = new MemoryStream())
+                    {
+                        gif.Save(ms, ImageFormat.Png);
+                        Texture2D frameTex = new Texture2D(2, 2);
+                        frameTex.LoadImage(ms.ToArray());
+                        gifFrames.Add(frameTex);
+                    }
+
+                    // 프레임 딜레이 (기본적으로 0x5100 속성)
+                    try
+                    {
+                        PropertyItem item = gif.GetPropertyItem(0x5100);
+                        int delay = System.BitConverter.ToInt32(item.Value, i * 4) * 10;
+                        if (delay <= 0) delay = 100; // 최소 100ms 보정
+                        gifDelays.Add(delay / 1000f);
+                    }
+                    catch
+                    {
+                        gifDelays.Add(0.1f); // 속성 없을 경우 기본값 0.1초
+                    }
+                }
+            }
+
+            // 첫 프레임 표시
+            if (gifFrames.Count > 0)
+            {
+                texture = gifFrames[0];
+            }
+        }
+
+        private void Update()
+        {
+            if (isGif && gifFrames.Count > 0)
+            {
+                timer += Time.deltaTime;
+                if (timer >= gifDelays[currentFrame])
+                {
+                    timer = 0f;
+                    currentFrame = (currentFrame + 1) % gifFrames.Count;
+                    texture = gifFrames[currentFrame];
+                }
+            }
+
+            CustomUpdate();
         }
 
         public void UpdateImageSize()
@@ -44,14 +128,12 @@ namespace MyOshiOverlay
             float width = texture.width;
             float height = texture.height;
 
-            // 가로 제한
             if (width > maxWidth)
             {
                 width = maxWidth;
                 height = width / aspect;
             }
 
-            // 세로 제한
             if (height > maxHeight)
             {
                 height = maxHeight;
@@ -64,7 +146,7 @@ namespace MyOshiOverlay
 
         public void CustomUpdate()
         {
-            if (isDragging) // 드래그 중일 때 Unity Input을 잠시 리셋해서 게임 내 입력을 무시함
+            if (isDragging)
             {
                 UnityEngine.Input.ResetInputAxes();
             }
@@ -72,22 +154,20 @@ namespace MyOshiOverlay
 
         private void OnGUI()
         {
-            if (texture == null) return; // 이미지가 없으면 아무 사진도 불러오지 않음
-
-            GUI.DrawTexture(rect, texture, ScaleMode.ScaleToFit); // rect 위치에 이미지 그리기 (비율 유지)
-
-            HandleDrag(); // 마우스 입력 처리
+            if (texture == null) return;
+            GUI.DrawTexture(rect, texture, ScaleMode.ScaleToFit);
+            HandleDrag();
         }
 
         private void HandleDrag()
         {
             Event e = Event.current;
 
-            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition)) // 왼쪽 클릭으로 이미지 클릭 시작 시
+            if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
             {
-                isDragging = true; // 드래그 시작
-                isTyping = true; // 입력 중 상태로 전환
-                dragOffset = e.mousePosition - new Vector2(rect.x, rect.y); // 클릭 오프셋 계산
+                isDragging = true;
+                isTyping = true;
+                dragOffset = e.mousePosition - new Vector2(rect.x, rect.y);
                 e.Use();
             }
             else if (e.type == EventType.MouseUp && e.button == 0)
@@ -96,7 +176,7 @@ namespace MyOshiOverlay
                 isTyping = false;
                 e.Use();
             }
-            else if (e.type == EventType.MouseDrag && e.button == 0 && isDragging) // 드래그 하고 있을 때 이미지 위치 갱신
+            else if (e.type == EventType.MouseDrag && e.button == 0 && isDragging)
             {
                 rect.position = e.mousePosition - dragOffset;
                 e.Use();

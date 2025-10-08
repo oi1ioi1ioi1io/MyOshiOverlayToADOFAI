@@ -38,7 +38,7 @@ namespace MyOshiOverlay
         private static string lastValidMaxWidth;
         private static string lastValidMaxHeight;
 
-        // 선택된 언어요
+        // 현재 언어요
         public static Language currentLanguage = Language.Korean;
 
         // 언어 텍스트 딕셔너리
@@ -49,6 +49,7 @@ namespace MyOshiOverlay
                 Language.English, new Dictionary<string, string>()
                 {
                     { "PhotoPath", "Enter photo path:" },
+                    { "GIFWarn", "GIFs are supported, but the game may briefly freeze when applied. This is due to the GIF loading process.\nAlso, because they can be a strain on the CPU, we recommend not using GIFs on low-spec computers." },
                     { "ApplyImage", "Apply" },
                     { "ResolutionSettings", "Overlay Max Size Settings" },
                     { "MaxWidth", "Max Width:" },
@@ -60,6 +61,7 @@ namespace MyOshiOverlay
                 Language.Korean, new Dictionary<string, string>()
                 {
                     { "PhotoPath", "사진 경로 입력:" },
+                    { "GIFWarn", "GIF를 지원하지만 적용 시 GIF 로딩 때문에 게임이 잠시 멈출 수 있습니다.\n또한, CPU에 부담이 있을 수 있으니 저사양 컴퓨터에서는 GIF 적용을 하지 않는 걸 추천합니다." },
                     { "ApplyImage", "적용" },
                     { "ResolutionSettings", "오버레이 최대 크기 설정" },
                     { "MaxWidth", "최대 너비:" },
@@ -127,11 +129,34 @@ namespace MyOshiOverlay
         {
             // 언어 전환 버튼
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("English", GUILayout.Width(100)))
+
+            GUIStyle englishStyle = new GUIStyle(GUI.skin.button);
+            GUIStyle koreanStyle = new GUIStyle(GUI.skin.button);
+
+            if (currentLanguage == Language.English)
+            {
+                englishStyle.fontStyle = FontStyle.Bold;
+            }
+            else
+            {
+                englishStyle.fontStyle = FontStyle.Normal;
+            }
+
+            if (currentLanguage == Language.Korean)
+            {
+                koreanStyle.fontStyle = FontStyle.Bold;
+            }
+            else
+            {
+                koreanStyle.fontStyle = FontStyle.Normal;
+            }
+
+            if (GUILayout.Button("English", englishStyle, GUILayout.Width(100)))
             {
                 currentLanguage = Language.English;
             }
-            if (GUILayout.Button("한국어", GUILayout.Width(100)))
+
+            if (GUILayout.Button("한국어", koreanStyle, GUILayout.Width(100)))
             {
                 currentLanguage = Language.Korean;
             }
@@ -140,6 +165,10 @@ namespace MyOshiOverlay
             // 오버레이가 켜져있을 때만 설정 표시
             if (overlay != null)
             {
+                GUIStyle GIFWarnStyle = new GUIStyle(GUI.skin.label);
+                GIFWarnStyle.normal.textColor = new Color(1f, 0.3f, 0f);
+                GIFWarnStyle.fontSize = 12;
+
                 if (overlay.isDragging || overlay.isTyping)
                 {
                     GUIUtility.hotControl = 0;
@@ -151,6 +180,7 @@ namespace MyOshiOverlay
 
                 GUI.SetNextControlName("FilePathInput");
                 overlay.filePath = GUILayout.TextField(overlay.filePath ?? "", GUILayout.Width(300));
+                GUILayout.Label(languageTexts[currentLanguage]["GIFWarn"], GIFWarnStyle);
 
                 // 적용 버튼
                 if (GUILayout.Button(languageTexts[currentLanguage]["ApplyImage"], GUILayout.Width(100)))
