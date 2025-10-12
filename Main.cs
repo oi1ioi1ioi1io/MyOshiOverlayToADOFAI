@@ -10,6 +10,8 @@ namespace MyOshiOverlay
         public int maxWidth = 500;
         public int maxHeight = 500;
 
+        public string lastImagePath = ""; // 마지막으로 설정한 사진 경로를 저장
+
         // 유니티모드매니저가 설정 저장할 때 호출함
         public override void Save(UnityModManager.ModEntry modEntry)
         {
@@ -49,7 +51,7 @@ namespace MyOshiOverlay
                 Language.English, new Dictionary<string, string>()
                 {
                     { "PhotoPath", "Enter photo path:" },
-                    { "GIFWarn", "GIFs are supported, but the game may briefly freeze when applied. This is due to the GIF loading process.\nAlso, because they can be a strain on the CPU, we recommend not using GIFs on low-spec computers." },
+                    { "GIFWarn", "GIFs are supported, but the game may briefly freeze when applied. This is due to the GIF loading process.\nAlso, because they can be a strain on the CPU, we recommend not using GIFs on low-spec PC." },
                     { "ApplyImage", "Apply" },
                     { "ResolutionSettings", "Overlay Max Size Settings" },
                     { "MaxWidth", "Max Width:" },
@@ -106,6 +108,13 @@ namespace MyOshiOverlay
 
                 overlay.maxWidth = settings.maxWidth;
                 overlay.maxHeight = settings.maxHeight;
+
+                // 저장된 경로가 있다면 자동으로 로드
+                if (!string.IsNullOrEmpty(settings.lastImagePath))
+                {
+                    overlay.filePath = settings.lastImagePath;
+                    overlay.LoadImage();
+                }
             }
             else if (!enabled && overlay != null)
             {
@@ -116,6 +125,7 @@ namespace MyOshiOverlay
 
             return true;
         }
+
 
         private static void OnUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
         {
@@ -130,6 +140,7 @@ namespace MyOshiOverlay
             // 언어 전환 버튼
             GUILayout.BeginHorizontal();
 
+            // 언어 고르면 그 버튼 볼드체
             GUIStyle englishStyle = new GUIStyle(GUI.skin.button);
             GUIStyle koreanStyle = new GUIStyle(GUI.skin.button);
 
@@ -150,7 +161,7 @@ namespace MyOshiOverlay
             {
                 koreanStyle.fontStyle = FontStyle.Normal;
             }
-
+            
             if (GUILayout.Button("English", englishStyle, GUILayout.Width(100)))
             {
                 currentLanguage = Language.English;
@@ -186,6 +197,9 @@ namespace MyOshiOverlay
                 if (GUILayout.Button(languageTexts[currentLanguage]["ApplyImage"], GUILayout.Width(100)))
                 {
                     overlay.LoadImage();    // Overlay.cs 쪽에서 이미지 로드
+
+                    settings.lastImagePath = overlay.filePath; // 껏다 켜도 저장
+                    settings.Save(modEntry);
                 }
 
                 GUILayout.Space(20);
