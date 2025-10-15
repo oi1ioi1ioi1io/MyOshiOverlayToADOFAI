@@ -196,6 +196,10 @@ namespace MyOshiOverlay
                 // 적용 버튼
                 if (GUILayout.Button(languageTexts[currentLanguage]["ApplyImage"], GUILayout.Width(100)))
                 {
+                    // 쌍따옴표와 공백 자동 제거
+                    if (!string.IsNullOrEmpty(overlay.filePath))
+                    overlay.filePath = overlay.filePath.Trim().Trim('"');
+
                     overlay.LoadImage();    // Overlay.cs 쪽에서 이미지 로드
 
                     settings.lastImagePath = overlay.filePath; // 껏다 켜도 저장
