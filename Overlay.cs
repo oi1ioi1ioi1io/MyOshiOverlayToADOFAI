@@ -1,9 +1,9 @@
 using UnityEngine;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
-using System.Drawing;
-using System.Drawing.Imaging;
+using System.Collections.Generic;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace MyOshiOverlay
 {
@@ -21,15 +21,51 @@ namespace MyOshiOverlay
 
         private Vector2 dragOffset;
 
-        // --- GIF 관련 변수 ---
         private bool isGif = false;
+
         private List<Texture2D> gifFrames = new List<Texture2D>();
         private List<float> gifDelays = new List<float>();
+
+        private const int MaxGifFrames = 420;
+        private const int MaxGifMemoryMB = 128;
+
+        private const int MaxGifWidth = 1000;
+        private const int MaxGifHeight = 1000;
+
         private int currentFrame = 0;
-        private float timer = 0f;
+        private float gifTimer = 0f;
+
+        private void ClearTexture()
+        {
+            bool textureIsGifFrame = gifFrames.Contains(texture);
+
+            foreach (Texture2D frame in gifFrames)
+            {
+                if (frame != null)
+                {
+                    Destroy(frame);
+                }
+            }
+
+            gifFrames.Clear();
+            gifDelays.Clear();
+
+            if (texture != null && !textureIsGifFrame)
+            {
+                Destroy(texture);
+            }
+
+            texture = null;
+            isGif = false;
+
+            currentFrame = 0;
+            gifTimer = 0f;
+        }
 
         public void LoadImage()
         {
+            ClearTexture();
+
             if (!File.Exists(filePath))
             {
                 Debug.LogWarning("[MyOshiOverlay] File not found: " + filePath);
@@ -42,7 +78,6 @@ namespace MyOshiOverlay
             {
                 isGif = true;
                 LoadGif(filePath);
-                UpdateImageSize();
             }
             else
             {
@@ -61,63 +96,191 @@ namespace MyOshiOverlay
 
         private void LoadGif(string path)
         {
-            gifFrames.Clear();
-            gifDelays.Clear();
+            currentFrame = 0;
+            gifTimer = 0f;
 
-            using (Image gif = Image.FromFile(path))
+            FileInfo info = new FileInfo(path);
+
+            const long maxGifSize = 128L * 1024L * 1024L;
+
+            if (info.Length > maxGifSize)
             {
-                FrameDimension dimension = new FrameDimension(gif.FrameDimensionsList[0]);
-                int frameCount = gif.GetFrameCount(dimension);
+                Debug.LogWarning(
+                    "[MyOshiOverlay] GIF file too large: "
+                    + (info.Length / 1024 / 1024)
+                    + "MB"
+                );
 
-                // 프레임별로 분리
-                for (int i = 0; i < frameCount; i++)
+                return;
+            }
+
+            try
+            {
+                using (Image<Rgba32> gif = Image.Load<Rgba32>(path))
                 {
-                    gif.SelectActiveFrame(dimension, i);
-
-                    using (MemoryStream ms = new MemoryStream())
+                    if (gif.Width > 2000 || gif.Height > 2000)
                     {
-                        gif.Save(ms, ImageFormat.Png);
-                        Texture2D frameTex = new Texture2D(2, 2);
-                        frameTex.LoadImage(ms.ToArray());
-                        gifFrames.Add(frameTex);
+                        Debug.LogWarning(
+                            "[MyOshiOverlay] GIF resolution is very large: "
+                            + gif.Width + "x" + gif.Height
+                        );
                     }
 
-                    // 프레임 딜레이 (기본적으로 0x5100 속성)
-                    try
+                    int frameCount = gif.Frames.Count;
+
+                    Debug.Log("[MyOshiOverlay] GIF Frames: " + frameCount);
+
+                    for (int i = 0; i < frameCount; i++)
                     {
-                        PropertyItem item = gif.GetPropertyItem(0x5100);
-                        int delay = System.BitConverter.ToInt32(item.Value, i * 4) * 10;
-                        if (delay <= 0) delay = 100; // 최소 100ms 보정
-                        gifDelays.Add(delay / 1000f);
-                    }
-                    catch
-                    {
-                        gifDelays.Add(0.1f); // 속성 없을 경우 기본값 0.1초
+                        if (gifFrames.Count >= MaxGifFrames)
+                        {
+                            Debug.LogWarning(
+                                "[MyOshiOverlay] GIF frame limit reached. Only the first "
+                                + MaxGifFrames + " frames were loaded."
+                            );
+                            break;
+                        }
+
+                        using (Image<Rgba32> frame = gif.Frames.CloneFrame(i))
+                        {
+                            Image<Rgba32> finalFrame = frame.Clone();
+
+                            // 메모리가 초과할 경우에만 리사이즈
+                            if (gif.Width * gif.Height * 4L * frameCount > MaxGifMemoryMB * 1024L * 1024L)
+                            {
+                                finalFrame = ResizeIfNeeded(frame);
+                            }
+
+                            Texture2D tex = ConvertToTexture(finalFrame);
+
+                            gifFrames.Add(tex);
+
+                            float delay = 0.1f;
+
+                            try
+                            {
+                                var metadata = gif.Frames[i].Metadata.GetGifMetadata();
+
+                                if (metadata.FrameDelay > 0)
+                                {
+                                    delay = metadata.FrameDelay / 100f;
+                                }
+                            }
+                            catch
+                            {
+                                // delay 정보가 없으면 기본값 사용
+                            }
+
+                            delay = Mathf.Max(delay, 1f / 60f);
+
+                            gifDelays.Add(delay);
+                        }
                     }
                 }
+
+                if (gifFrames.Count > 0)
+                {
+                    texture = gifFrames[0];
+                    UpdateImageSize();
+
+                    Debug.Log("[MyOshiOverlay] GIF Loaded!");
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError("[MyOshiOverlay] GIF Load Failed: " + e);
+            }
+        }
+
+        private Image<Rgba32> ResizeIfNeeded(Image<Rgba32> image)
+        {
+            Image<Rgba32> result = image.Clone();
+
+            if (result.Width <= MaxGifWidth &&
+                result.Height <= MaxGifHeight)
+            {
+                return result;
             }
 
-            // 첫 프레임 표시
-            if (gifFrames.Count > 0)
+            float aspect = (float)result.Width / result.Height;
+
+            int width = result.Width;
+            int height = result.Height;
+
+
+            if (width > MaxGifWidth)
             {
-                texture = gifFrames[0];
+                width = MaxGifWidth;
+                height = (int)(width / aspect);
             }
+
+            if (height > MaxGifHeight)
+            {
+                height = MaxGifHeight;
+                width = (int)(height * aspect);
+            }
+
+
+            result.Mutate(x => x.Resize(width, height));
+
+            return result;
+        }
+
+        private Texture2D ConvertToTexture(Image<Rgba32> image)
+        {
+            Texture2D tex = new Texture2D(
+                image.Width,
+                image.Height,
+                TextureFormat.RGBA32,
+                false
+            );
+
+            byte[] pixels = new byte[image.Width * image.Height * 4];
+
+            image.CopyPixelDataTo(pixels);
+
+            byte[] flippedPixels = new byte[pixels.Length];
+
+            int rowSize = image.Width * 4;
+
+            for (int y = 0; y < image.Height; y++)
+            {
+                int sourceIndex = y * rowSize;
+                int targetIndex = (image.Height - y - 1) * rowSize;
+
+                System.Array.Copy(
+                    pixels,
+                    sourceIndex,
+                    flippedPixels,
+                    targetIndex,
+                    rowSize
+                );
+            }
+
+            tex.LoadRawTextureData(flippedPixels);
+            tex.Apply(false, true);
+
+            return tex;
         }
 
         private void Update()
         {
-            if (isGif && gifFrames.Count > 0)
-            {
-                timer += Time.deltaTime;
-                if (timer >= gifDelays[currentFrame])
-                {
-                    timer = 0f;
-                    currentFrame = (currentFrame + 1) % gifFrames.Count;
-                    texture = gifFrames[currentFrame];
-                }
-            }
+            if (!isGif || gifFrames.Count == 0)
+                return;
 
-            CustomUpdate();
+            gifTimer += Time.deltaTime;
+
+            while (gifTimer >= gifDelays[currentFrame])
+            {
+                gifTimer -= gifDelays[currentFrame];
+
+                currentFrame++;
+
+                if (currentFrame >= gifFrames.Count)
+                    currentFrame = 0;
+
+                texture = gifFrames[currentFrame];
+            }
         }
 
         public void UpdateImageSize()
@@ -142,6 +305,15 @@ namespace MyOshiOverlay
 
             rect.width = width;
             rect.height = height;
+
+            Debug.Log(
+                "[MyOshiOverlay] Texture: "
+                + texture.width + "x" + texture.height
+                + " / Rect: "
+                + rect.width + "x" + rect.height
+                + " / Max: "
+                + maxWidth + "x" + maxHeight
+            );
         }
 
         public void CustomUpdate()
@@ -159,6 +331,11 @@ namespace MyOshiOverlay
             HandleDrag();
         }
 
+        private void OnDestroy()
+        {
+            ClearTexture();
+        }
+
         private void HandleDrag()
         {
             Event e = Event.current;
@@ -167,6 +344,9 @@ namespace MyOshiOverlay
             {
                 isDragging = true;
                 isTyping = true;
+
+                Input.ResetInputAxes();
+
                 dragOffset = e.mousePosition - new Vector2(rect.x, rect.y);
                 e.Use();
             }
@@ -174,10 +354,16 @@ namespace MyOshiOverlay
             {
                 isDragging = false;
                 isTyping = false;
+
+                Main.settings.overlayX = rect.x;
+                Main.settings.overlayY = rect.y;
+
                 e.Use();
             }
             else if (e.type == EventType.MouseDrag && e.button == 0 && isDragging)
             {
+                Input.ResetInputAxes();
+
                 rect.position = e.mousePosition - dragOffset;
                 e.Use();
             }
