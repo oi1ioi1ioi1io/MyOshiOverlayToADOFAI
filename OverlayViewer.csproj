@@ -1,18 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net48</TargetFramework>
-    <OutputType>Library</OutputType>
-    <RootNamespace>MyOshiOverlay</RootNamespace>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>latest</LangVersion>
     <AssemblyName>MyOshiOverlay</AssemblyName>
+    <RootNamespace>MyOshiOverlay</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="System.Drawing" />
-    <Reference Include="netstandard">
-      <HintPath>D:\SteamLibrary\steamapps\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\netstandard.dll</HintPath>
-    </Reference>
-    
-    <!-- Unity 엔진 기본 모듈 -->
     <Reference Include="UnityEngine">
       <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.dll</HintPath>
     </Reference>
@@ -22,19 +16,21 @@
     <Reference Include="UnityEngine.IMGUIModule">
       <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
-    <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
       <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
-
-    <!-- UMM -->
     <Reference Include="UnityModManager">
       <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityModManager\UnityModManager.dll</HintPath>
     </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.8" />
   </ItemGroup>
 </Project>
