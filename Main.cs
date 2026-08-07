@@ -6,11 +6,14 @@ namespace MyOshiOverlay
 {
     public class Settings : UnityModManager.ModSettings
     {
-        // 오버레이 최대 크기 설정
-        public int maxWidth = 500;
-        public int maxHeight = 500;
+        public int maxWidth = 500;      // 오버레이 최대 크기 설정
+        public int maxHeight = 500;     // 오버레이 최대 크기 설정
 
-        public string lastImagePath = ""; // 마지막으로 적용한 이미지 경로 저장
+        public string lastImagePath = "";   // 마지막으로 적용한 이미지 경로 저장
+
+        // 오버레이 위치 저장
+        public float overlayX = 100;
+        public float overlayY = 100;
 
         // 설정 저장
         public override void Save(UnityModManager.ModEntry modEntry)
@@ -32,6 +35,8 @@ namespace MyOshiOverlay
         public static Overlay overlay; // 오버레이 인스턴스
         public static Settings settings; // 모드 설정 인스턴스
 
+        public static UnityModManager.ModEntry modEntry; // 모드 엔트리 저장
+
         // UI 입력 임시 값 (문자열)
         public static string tempMaxWidth;
         public static string tempMaxHeight;
@@ -51,7 +56,7 @@ namespace MyOshiOverlay
                 Language.English, new Dictionary<string, string>()
                 {
                     { "PhotoPath", "Enter photo path:" },
-                    { "GIFWarn", "GIFs are supported, but the game may briefly freeze when applied. This is due to the GIF loading process.\nAlso, because they can be a strain on the CPU, we recommend not using GIFs on low-spec PC." },
+                    { "GIFWarn", "GIFs are supported, but the game may briefly freeze when applying them due to the loading process.\nAlso, GIFs may put a strain on your CPU, so using them on low-spec PCs is not recommended." },
                     { "ApplyImage", "Apply" },
                     { "ResolutionSettings", "Overlay Max Size Settings" },
                     { "MaxWidth", "Max Width:" },
@@ -76,6 +81,8 @@ namespace MyOshiOverlay
         // 모드 로드 시 1회 실행
         public static bool Load(UnityModManager.ModEntry modEntry)
         {
+            Main.modEntry = modEntry;
+
             // 기존 설정 불러오기
             settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
 
@@ -109,6 +116,11 @@ namespace MyOshiOverlay
                 overlay.maxWidth = settings.maxWidth;
                 overlay.maxHeight = settings.maxHeight;
 
+                overlay.rect.position = new Vector2(
+                    settings.overlayX,
+                    settings.overlayY
+                );
+
                 // 저장된 경로가 있다면 자동으로 로드
                 if (!string.IsNullOrEmpty(settings.lastImagePath))
                 {
@@ -118,6 +130,12 @@ namespace MyOshiOverlay
             }
             else if (!enabled && overlay != null)
             {
+                // 오버레이 위치 저장
+                settings.overlayX = overlay.rect.x;
+                settings.overlayY = overlay.rect.y;
+
+                settings.Save(modEntry);
+
                 // 비활성화 시 오브젝트 제거
                 Object.Destroy(overlay.gameObject);
                 overlay = null;
@@ -125,7 +143,6 @@ namespace MyOshiOverlay
 
             return true;
         }
-
 
         private static void OnUpdate(UnityModManager.ModEntry modEntry, float deltaTime)
         {
@@ -235,7 +252,7 @@ namespace MyOshiOverlay
             // 숫자 입력만 받고 입력 잘못하면 이전 값 유지
             if (int.TryParse(tempMaxWidth, out int w))
             {
-                settings.maxWidth = Mathf.Clamp(w, 100, Screen.width);
+                settings.maxWidth = Mathf.Clamp(w, 100, 1000);
                 lastValidMaxWidth = settings.maxWidth.ToString();
                 tempMaxWidth = lastValidMaxWidth;
                 applied = true;
@@ -247,7 +264,7 @@ namespace MyOshiOverlay
 
             if (int.TryParse(tempMaxHeight, out int h))
             {
-                settings.maxHeight = Mathf.Clamp(h, 100, Screen.height);
+                settings.maxHeight = Mathf.Clamp(h, 100, 1000);
                 lastValidMaxHeight = settings.maxHeight.ToString();
                 tempMaxHeight = lastValidMaxHeight;
                 applied = true;
