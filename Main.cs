@@ -10,16 +10,16 @@ namespace MyOshiOverlay
         public int maxWidth = 500;
         public int maxHeight = 500;
 
-        public string lastImagePath = ""; // 마지막으로 설정한 사진 경로를 저장
+        public string lastImagePath = ""; // 마지막으로 적용한 이미지 경로 저장
 
-        // 유니티모드매니저가 설정 저장할 때 호출함
+        // 설정 저장
         public override void Save(UnityModManager.ModEntry modEntry)
         {
             Save(this, modEntry);
         }
     }
 
-    // 언어요 랭귀지
+    // 언어 선택용 enum
     public enum Language
     {
         English,
@@ -29,8 +29,8 @@ namespace MyOshiOverlay
     public static class Main
     {
         public static bool enabled; // 모드 활성화 여부
-        public static Overlay overlay; // Overlay 객체(실제 오버레이 동작 담당 스크립트)
-        public static Settings settings; // 설정 인스턴스
+        public static Overlay overlay; // 오버레이 인스턴스
+        public static Settings settings; // 모드 설정 인스턴스
 
         // UI 입력 임시 값 (문자열)
         public static string tempMaxWidth;
@@ -40,7 +40,7 @@ namespace MyOshiOverlay
         private static string lastValidMaxWidth;
         private static string lastValidMaxHeight;
 
-        // 현재 언어요
+        // 현재 언어
         public static Language currentLanguage = Language.Korean;
 
         // 언어 텍스트 딕셔너리
@@ -161,7 +161,7 @@ namespace MyOshiOverlay
             {
                 koreanStyle.fontStyle = FontStyle.Normal;
             }
-            
+
             if (GUILayout.Button("English", englishStyle, GUILayout.Width(100)))
             {
                 currentLanguage = Language.English;
@@ -180,12 +180,6 @@ namespace MyOshiOverlay
                 GIFWarnStyle.normal.textColor = new Color(1f, 0.3f, 0f);
                 GIFWarnStyle.fontSize = 12;
 
-                if (overlay.isDragging || overlay.isTyping)
-                {
-                    GUIUtility.hotControl = 0;
-                    Event.current.Use();
-                }
-
                 // 파일 경로 입력
                 GUILayout.Label(languageTexts[currentLanguage]["PhotoPath"]);
 
@@ -198,7 +192,9 @@ namespace MyOshiOverlay
                 {
                     // 쌍따옴표와 공백 자동 제거
                     if (!string.IsNullOrEmpty(overlay.filePath))
-                    overlay.filePath = overlay.filePath.Trim().Trim('"');
+                    {
+                        overlay.filePath = overlay.filePath.Trim().Trim('"');
+                    }
 
                     overlay.LoadImage();    // Overlay.cs 쪽에서 이미지 로드
 

@@ -7,6 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Reference Include="System.Drawing" />
+    <Reference Include="netstandard">
+      <HintPath>D:\SteamLibrary\steamapps\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\netstandard.dll</HintPath>
+    </Reference>
+    
     <!-- Unity 엔진 기본 모듈 -->
     <Reference Include="UnityEngine">
       <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.dll</HintPath>
@@ -18,13 +23,13 @@
       <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.IMGUIModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
-    <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
+      <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.ImageConversionModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.InputLegacyModule">
-    <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+      <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
     </Reference>
     <Reference Include="UnityEngine.TextRenderingModule">
-    <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+      <HintPath>D:\SteamLibrary\steamapps\common\A Dance of Fire and Ice\A Dance of Fire and Ice_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
     </Reference>
 
     <!-- UMM -->
