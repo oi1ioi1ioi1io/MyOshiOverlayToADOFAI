@@ -338,8 +338,15 @@ namespace MyOshiOverlay
 
         private void HandleDrag()
         {
-            Event e = Event.current;
+            Event e = Event.current;    // 현재 이벤트 가져오기
 
+            // 오버레이 위치가 고정되어 있으면 드래그하지 않음
+            if (Main.settings != null && Main.settings.overlayLocked)
+            {
+                return;
+            }
+
+            // 마우스 이벤트 처리
             if (e.type == EventType.MouseDown && e.button == 0 && rect.Contains(e.mousePosition))
             {
                 isDragging = true;
