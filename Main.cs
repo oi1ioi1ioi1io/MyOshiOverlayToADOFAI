@@ -15,6 +15,8 @@ namespace MyOshiOverlay
         public float overlayX = 100;
         public float overlayY = 100;
 
+        public bool overlayLocked = false;  // 오버레이 위치 고정 여부
+
         // 설정 저장
         public override void Save(UnityModManager.ModEntry modEntry)
         {
@@ -62,6 +64,7 @@ namespace MyOshiOverlay
                     { "MaxWidth", "Max Width:" },
                     { "MaxHeight", "Max Height:" },
                     { "ApplyResolution", "Apply" },
+                    { "OverlayLocked", "Lock Overlay Position" }
                 }
             },
             {
@@ -74,6 +77,7 @@ namespace MyOshiOverlay
                     { "MaxWidth", "최대 너비:" },
                     { "MaxHeight", "최대 높이:" },
                     { "ApplyResolution", "적용" },
+                    { "OverlayLocked", "오버레이 위치 고정" }
                 }
             }
         };
@@ -85,6 +89,18 @@ namespace MyOshiOverlay
 
             // 기존 설정 불러오기
             settings = UnityModManager.ModSettings.Load<Settings>(modEntry);
+
+            int oldWidth = settings.maxWidth;
+            int oldHeight = settings.maxHeight;
+
+            settings.maxWidth = Mathf.Clamp(settings.maxWidth, 100, 1000);
+            settings.maxHeight = Mathf.Clamp(settings.maxHeight, 100, 1000);
+
+            if (oldWidth != settings.maxWidth ||
+                oldHeight != settings.maxHeight)
+            {
+                settings.Save(modEntry);
+            }
 
             // 불러온 값을 문자열로 변환 (GUI 입력용)
             tempMaxWidth = settings.maxWidth.ToString();
@@ -216,6 +232,26 @@ namespace MyOshiOverlay
                     overlay.LoadImage();    // Overlay.cs 쪽에서 이미지 로드
 
                     settings.lastImagePath = overlay.filePath; // 껏다 켜도 저장
+                    settings.Save(modEntry);
+                }
+
+                GUILayout.Space(10);
+
+                bool newLockedState = GUILayout.Toggle(
+                    settings.overlayLocked,
+                    languageTexts[currentLanguage]["OverlayLocked"]
+                );
+
+                if (newLockedState != settings.overlayLocked)
+                {
+                    settings.overlayLocked = newLockedState;
+
+                    if (settings.overlayLocked && overlay != null)
+                    {
+                        overlay.isDragging = false;
+                        overlay.isTyping = false;
+                    }
+
                     settings.Save(modEntry);
                 }
 
